@@ -1,4 +1,5 @@
-// src/scenes/MainMenu.js
+import { gameState } from '../gameState.js'
+
 export default class MainMenu extends Phaser.Scene {
   constructor() {
     super('MainMenu')
@@ -21,6 +22,8 @@ export default class MainMenu extends Phaser.Scene {
     }).setOrigin(0.5).setInteractive()
 
     startBtn.on('pointerdown', () => {
+      gameState.maskPieces = 0
+      gameState.currentEnvIndex = 0
       this.scene.start('StoryScene')
     })
 
