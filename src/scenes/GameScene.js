@@ -36,12 +36,13 @@ export default class GameScene extends Phaser.Scene {
     this.platforms = this.physics.add.staticGroup()
     this.createLevel(this.env)
 
-    // Player
+    // Player - SMALLER SIZE
     const startX = this.startPos ? this.startPos.x : 100
     const startY = this.startPos ? this.startPos.y : 300
     this.player = this.physics.add.sprite(startX, startY, 'player')
+    this.player.setScale(0.3) // Make player smaller
 
-    this.player.setCollideWorldBounds(true) // Fixes the "death loop"
+    this.player.setCollideWorldBounds(true)
     this.player.setBounce(0.1)
 
     this.cameras.main.startFollow(this.player, true, 0.05, 0.05)
@@ -51,16 +52,45 @@ export default class GameScene extends Phaser.Scene {
     this.cursors = this.input.keyboard.createCursorKeys()
     this.keyR = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R)
 
-    // Goal (Mask)
+    // Goal (Mask) - SMALLER SIZE
     const maskX = this.maskPos ? this.maskPos.x : 1500
     const maskY = this.maskPos ? this.maskPos.y : 300
-    this.mask = this.physics.add.sprite(maskX, maskY, 'maskPiece').setScale(0.4)
+    this.mask = this.physics.add.sprite(maskX, maskY, 'maskPiece').setScale(0.25) // Smaller mask
 
     this.tweens.add({
       targets: this.mask, y: maskY - 10, duration: 1000, yoyo: true, repeat: -1
     })
 
     this.physics.add.overlap(this.player, this.mask, this.collectMask, null, this)
+
+    // Create particles for mask collection effect
+    this.maskParticles = this.add.particles('maskPiece')
+    this.maskParticles.setDepth(100)
+
+    // Environment name display
+    const envNames = {
+      savannah: 'THE GOLDEN SAVANNAH',
+      swamp: 'THE MYSTIC SWAMP',
+      forest: 'THE ANCIENT FOREST',
+      mountain: 'THE SACRED MOUNTAIN'
+    }
+
+    const envTitle = this.add.text(400, 100, envNames[this.env] || this.env.toUpperCase(), {
+      fontSize: '28px',
+      color: '#d4af37',
+      stroke: '#000',
+      strokeThickness: 4,
+      fontStyle: 'bold'
+    }).setOrigin(0.5).setScrollFactor(0)
+
+    // Fade out environment title
+    this.tweens.add({
+      targets: envTitle,
+      alpha: 0,
+      duration: 3000,
+      delay: 1000,
+      ease: 'Power2'
+    })
   }
 
   createLevel(env) {
@@ -113,14 +143,80 @@ export default class GameScene extends Phaser.Scene {
   }
 
   collectMask(player, mask) {
-    mask.destroy()
+    // Prevent multiple collections
+    if (this.isCollecting) return
+    this.isCollecting = true
+
+    // Freeze player momentarily
+    player.setVelocity(0, 0)
+
+    // Particle burst effect
+    const emitter = this.maskParticles.createEmitter({
+      x: mask.x,
+      y: mask.y,
+      speed: { min: 100, max: 300 },
+      angle: { min: 0, max: 360 },
+      scale: { start: 0.3, end: 0 },
+      blendMode: 'ADD',
+      lifespan: 1000,
+      gravityY: 200,
+      quantity: 20
+    })
+
+    emitter.explode()
+
+    // Screen flash effect
+    const flash = this.add.rectangle(400, 225, 800, 450, 0xffffff, 0.5)
+    flash.setScrollFactor(0)
+    flash.setDepth(99)
+
+    this.tweens.add({
+      targets: flash,
+      alpha: 0,
+      duration: 500,
+      onComplete: () => flash.destroy()
+    })
+
+    // Celebration text
+    const collectText = this.add.text(mask.x, mask.y - 50, 'MASK PIECE FOUND!', {
+      fontSize: '24px',
+      color: '#d4af37',
+      stroke: '#000',
+      strokeThickness: 4,
+      fontStyle: 'bold'
+    }).setOrigin(0.5)
+
+    this.tweens.add({
+      targets: collectText,
+      y: mask.y - 100,
+      alpha: 0,
+      duration: 1500,
+      ease: 'Power2'
+    })
+
+    // Destroy mask with scale animation
+    this.tweens.add({
+      targets: mask,
+      scale: 0,
+      alpha: 0,
+      duration: 500,
+      onComplete: () => mask.destroy()
+    })
+
+    // Update game state
     gameState.maskPieces++
     gameState.currentEnvIndex++
 
-    if (gameState.maskPieces >= gameState.totalPieces) {
-      this.scene.start('EndStory')
-    } else {
-      this.scene.restart()
-    }
+    // TODO: Play collection sound effect here
+    // this.sound.play('collectSound')
+
+    // Transition to next scene after delay
+    this.time.delayedCall(1500, () => {
+      if (gameState.maskPieces >= gameState.totalPieces) {
+        this.scene.start('EndStory')
+      } else {
+        this.scene.restart()
+      }
+    })
   }
 }
