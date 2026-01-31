@@ -1,4 +1,6 @@
 // src/scenes/EndStory.js
+import { gameState } from '../gameState.js'
+
 export default class EndStory extends Phaser.Scene {
   constructor() {
     super('EndStory')
@@ -9,6 +11,14 @@ export default class EndStory extends Phaser.Scene {
 
   create() {
     const { width, height } = this.cameras.main
+    
+    // Stop all sounds (including background music)
+    this.sound.stopAll()
+    
+    // Play victory clap sound (if sound enabled)
+    if (gameState.soundEnabled && this.cache.audio.exists('clapSound')) {
+      this.sound.play('clapSound', { volume: 0.8 })
+    }
     
     // Calculate responsive sizes
     const padding = Math.min(width * 0.05, 40)

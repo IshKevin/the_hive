@@ -195,8 +195,11 @@ export default class MainMenu extends Phaser.Scene {
     // Floating particles effect (optional decorative element)
     this.createFloatingParticles()
 
-    // Background Music
-    if (this.cache.audio.exists('bgMusic')) {
+    // Sound Toggle Button
+    this.createSoundToggle(width, height)
+
+    // Background Music (only if sound enabled)
+    if (this.cache.audio.exists('bgMusic') && gameState.soundEnabled) {
       if (!this.sound.get('bgMusic')) {
         this.bgMusic = this.sound.add('bgMusic', { loop: true, volume: 0.4 })
         this.bgMusic.play()
@@ -204,6 +207,43 @@ export default class MainMenu extends Phaser.Scene {
         this.sound.get('bgMusic').play()
       }
     }
+  }
+
+  createSoundToggle(width, height) {
+    // Sound toggle button in top right corner
+    const soundIcon = gameState.soundEnabled ? '🔊' : '🔇'
+    
+    this.soundBtn = this.add.text(width - 50, 20, soundIcon, {
+      fontSize: '32px',
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      padding: { x: 10, y: 8 }
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true })
+
+    this.soundBtn.on('pointerover', () => {
+      this.soundBtn.setScale(1.1)
+    })
+
+    this.soundBtn.on('pointerout', () => {
+      this.soundBtn.setScale(1)
+    })
+
+    this.soundBtn.on('pointerdown', () => {
+      const isEnabled = gameState.toggleSound()
+      this.soundBtn.setText(isEnabled ? '🔊' : '🔇')
+      
+      if (isEnabled) {
+        // Turn sound on
+        if (this.cache.audio.exists('bgMusic')) {
+          const bgMusic = this.sound.get('bgMusic') || this.sound.add('bgMusic', { loop: true, volume: 0.4 })
+          if (!bgMusic.isPlaying) {
+            bgMusic.play()
+          }
+        }
+      } else {
+        // Turn sound off
+        this.sound.stopAll()
+      }
+    })
   }
 
   createButton(x, y, text, style) {
@@ -244,8 +284,8 @@ export default class MainMenu extends Phaser.Scene {
     })
 
     button.on('pointerdown', () => {
-      // Play click sound
-      if (this.cache.audio.exists('buttonClick')) {
+      // Play click sound if enabled
+      if (gameState.soundEnabled && this.cache.audio.exists('buttonClick')) {
         this.sound.play('buttonClick', { volume: 0.6 })
       }
 

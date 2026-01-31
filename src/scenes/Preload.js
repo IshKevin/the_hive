@@ -52,14 +52,20 @@ export default class Preload extends Phaser.Scene {
     this.load.image('maskPiece', 'assets/maskPiece.png')
     this.load.image('enemy', 'assets/ground.png')
 
+    // Mask pieces - one for each environment
+    this.load.image('mask1', 'assets/mask1.png')  // Savannah
+    this.load.image('mask2', 'assets/mask2.png')  // Swamp
+    this.load.image('mask3', 'assets/mask3.png')  // Forest
+    this.load.image('mask4', 'assets/mask4.png')  // Mountain
+
     // Audio assets
     this.load.audio('bgMusic', 'assets/music/backgroundMusic.mp3')
     this.load.audio('buttonClick', 'assets/music/buttonClick.mp3')
 
-    // Using placeholder for other sounds as requested
-    this.load.audio('collectSound', 'assets/music/placeholder.mp3')
-    this.load.audio('hitSound', 'assets/music/placeholder.mp3')
-    this.load.audio('jumpSound', 'assets/music/placeholder.mp3')
+    // Sound effects
+    this.load.audio('pickSound', 'assets/music/pick.mp3')
+    this.load.audio('failSound', 'assets/music/failed.mp3')
+    this.load.audio('clapSound', 'assets/music/clap.wav')  // Victory sound
   }
 
   create() {
