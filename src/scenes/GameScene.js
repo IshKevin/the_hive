@@ -7,134 +7,146 @@ export default class GameScene extends Phaser.Scene {
   }
 
   create() {
-    this.env = gameState.environments[gameState.currentEnvIndex]
+    // Total world is 4 screens wide (3200x450)
+    const worldWidth = 3200
+    const worldHeight = 450
+    const screenWidth = 800
 
-    // Set up world bounds for scrolling (Double width)
-    this.physics.world.setBounds(0, 0, 1600, 450)
-    this.cameras.main.setBounds(0, 0, 1600, 450)
+    this.physics.world.setBounds(0, 0, worldWidth, worldHeight)
+    this.cameras.main.setBounds(0, 0, worldWidth, worldHeight)
+    this.cameras.main.setSize(screenWidth, worldHeight)
 
-    // Background Color
-    const colors = {
-      savannah: '#e6ccb2', swamp: '#2d6a4f', forest: '#52b788', mountain: '#a8dadc'
-    }
-    this.cameras.main.setBackgroundColor(colors[this.env] || '#040218')
+    // Background Colors for each segment
+    const colors = [0xe6ccb2, 0x2d6a4f, 0x52b788, 0xa8dadc] // Savannah, Swamp, Forest, Mountain
+    colors.forEach((color, i) => {
+      this.add.rectangle(i * screenWidth, 0, screenWidth, worldHeight, color).setOrigin(0)
+    })
 
     // UI Text (Fixed on screen)
-    this.add.text(10, 10, `Env: ${this.env.toUpperCase()}`, {
-      fontSize: '18px', fill: '#fff', stroke: '#000', strokeThickness: 3
-    }).setScrollFactor(0)
+    this.uiContainer = this.add.container(0, 0).setScrollFactor(0).setDepth(100)
 
-    this.add.text(10, 35, `Masks: ${gameState.maskPieces}/${gameState.totalPieces}`, {
+    this.envText = this.add.text(10, 10, 'Env: Savannah', {
       fontSize: '18px', fill: '#fff', stroke: '#000', strokeThickness: 3
-    }).setScrollFactor(0)
+    })
+    this.uiContainer.add(this.envText)
 
-    this.add.text(10, 60, 'Arrows to Move | R to Restart', {
+    this.maskText = this.add.text(10, 35, `Masks: 0/${gameState.totalPieces}`, {
+      fontSize: '18px', fill: '#fff', stroke: '#000', strokeThickness: 3
+    })
+    this.uiContainer.add(this.maskText)
+
+    const infoText = this.add.text(10, 60, 'Arrow Keys to Move | Avoid Red Enemies!', {
       fontSize: '14px', fill: '#fff', stroke: '#000', strokeThickness: 2
-    }).setScrollFactor(0)
+    })
+    this.uiContainer.add(infoText)
 
-    // Platforms
-    this.platforms = this.physics.add.staticGroup()
-    this.createLevel(this.env)
+    this.posText = this.add.text(10, 80, 'X: 0 Y: 0', {
+      fontSize: '14px', fill: '#ffff00'
+    })
+    this.uiContainer.add(this.posText)
 
-    // Player - SMALLER SIZE
-    const startX = this.startPos ? this.startPos.x : 100
-    const startY = this.startPos ? this.startPos.y : 300
-    this.player = this.physics.add.sprite(startX, startY, 'player')
-    this.player.setScale(0.3) // Make player smaller
-
+    // Player - TOP-DOWN MOVEMENT
+    this.player = this.physics.add.sprite(100, 225, 'player')
+    this.player.setScale(0.3)
     this.player.setCollideWorldBounds(true)
-    this.player.setBounce(0.1)
-
-    this.cameras.main.startFollow(this.player, true, 0.05, 0.05)
-    this.physics.add.collider(this.player, this.platforms)
+    this.player.body.setAllowGravity(false)
 
     // Controls
     this.cursors = this.input.keyboard.createCursorKeys()
     this.keyR = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R)
 
-    // Goal (Mask) - SMALLER SIZE
-    const maskX = this.maskPos ? this.maskPos.x : 1500
-    const maskY = this.maskPos ? this.maskPos.y : 300
-    this.mask = this.physics.add.sprite(maskX, maskY, 'maskPiece').setScale(0.25) // Smaller mask
+    // Mask Pieces - Create all 4 at once
+    this.maskPieces = this.physics.add.group()
+    const piecePositions = [
+      { x: 650, y: 350 },      // Savannah
+      { x: 1200, y: 100 },     // Swamp
+      { x: 2300, y: 225 },     // Forest
+      { x: 3000, y: 150 }      // Mountain
+    ]
 
-    this.tweens.add({
-      targets: this.mask, y: maskY - 10, duration: 1000, yoyo: true, repeat: -1
+    piecePositions.forEach((pos, i) => {
+      const piece = this.maskPieces.create(pos.x, pos.y, 'maskPiece').setScale(0.2)
+      piece.body.setAllowGravity(false)
+      this.tweens.add({
+        targets: piece, y: pos.y - 10, duration: 1000, yoyo: true, repeat: -1
+      })
     })
 
-    this.physics.add.overlap(this.player, this.mask, this.collectMask, null, this)
+    this.physics.add.overlap(this.player, this.maskPieces, this.collectMask, null, this)
 
-    // Create particles for mask collection effect
+    // Enemies - Small and red
+    this.enemies = this.physics.add.group()
+    const enemyPositions = [
+      { x: 400, y: 100, vx: 0, vy: 100 },
+      { x: 600, y: 300, vx: -100, vy: 0 },
+      { x: 1000, y: 200, vx: 120, vy: 50 },
+      { x: 1400, y: 100, vx: 0, vy: 150 },
+      { x: 2000, y: 300, vx: -110, vy: 0 },
+      { x: 2500, y: 150, vx: 50, vy: 100 },
+      { x: 2800, y: 100, vx: 80, vy: 40 },
+      { x: 3100, y: 350, vx: -70, vy: -50 }
+    ]
+
+    enemyPositions.forEach(pos => {
+      const enemy = this.enemies.create(pos.x, pos.y, 'enemy')
+      enemy.setScale(0.15) // SMALL enemies
+      enemy.setTint(0xff0000)
+      enemy.setBounce(1)
+      enemy.setCollideWorldBounds(true)
+      enemy.setVelocity(pos.vx, pos.vy)
+      enemy.body.setAllowGravity(false)
+    })
+
+    this.physics.add.overlap(this.player, this.enemies, this.hitEnemy, null, this)
+
+    // Mask Particles
     this.maskParticles = this.add.particles('maskPiece')
-    this.maskParticles.setDepth(100)
 
-    // Environment name display
-    const envNames = {
-      savannah: 'THE GOLDEN SAVANNAH',
-      swamp: 'THE MYSTIC SWAMP',
-      forest: 'THE ANCIENT FOREST',
-      mountain: 'THE SACRED MOUNTAIN'
-    }
+    // Initial state
+    gameState.maskPieces = 0
+    this.isCollecting = false
+    this.isHit = false
 
-    const envTitle = this.add.text(400, 100, envNames[this.env] || this.env.toUpperCase(), {
-      fontSize: '28px',
-      color: '#d4af37',
-      stroke: '#000',
-      strokeThickness: 4,
-      fontStyle: 'bold'
-    }).setOrigin(0.5).setScrollFactor(0)
-
-    // Fade out environment title
-    this.tweens.add({
-      targets: envTitle,
-      alpha: 0,
-      duration: 3000,
-      delay: 1000,
-      ease: 'Power2'
-    })
-  }
-
-  createLevel(env) {
-    // Create logic for different levels
-    this.startPos = { x: 50, y: 300 }
-    this.maskPos = { x: 1500, y: 300 } // Far right
-
-    // Helper to create ground
-    const addPlat = (x, y, scaleX) => {
-      this.platforms.create(x, y, 'ground').setScale(scaleX, 1).refreshBody()
-    }
-
-    if (env === 'savannah') {
-      addPlat(400, 430, 2); addPlat(1200, 430, 2); // Floor
-      addPlat(600, 300, 0.5); addPlat(900, 250, 0.5)
-    } else if (env === 'swamp') {
-      addPlat(200, 400, 1); addPlat(600, 350, 0.5);
-      addPlat(1000, 300, 0.5); addPlat(1400, 250, 0.8)
-      this.maskPos = { x: 1400, y: 150 }
-    } else if (env === 'forest') {
-      addPlat(400, 440, 2); addPlat(1200, 440, 2)
-      addPlat(800, 300, 0.3); addPlat(1000, 200, 0.3)
-    } else { // mountain
-      addPlat(100, 400, 0.5); addPlat(500, 300, 0.5);
-      addPlat(900, 300, 0.5); addPlat(1300, 200, 0.5)
-    }
+    // Set camera to initial screen
+    this.cameras.main.setScroll(0, 0)
   }
 
   update() {
-    // Left/Right
+    if (this.isHit) return
+
+    // TOP-DOWN MOVEMENT - 4 directions
+    const speed = 250
+    let vx = 0
+    let vy = 0
+
     if (this.cursors.left.isDown) {
-      this.player.setVelocityX(-250)
+      vx = -speed
       this.player.setFlipX(true)
     } else if (this.cursors.right.isDown) {
-      this.player.setVelocityX(250)
+      vx = speed
       this.player.setFlipX(false)
-    } else {
-      this.player.setVelocityX(0)
     }
 
-    // Jump
-    if (this.cursors.up.isDown && this.player.body.touching.down) {
-      this.player.setVelocityY(-550)
+    if (this.cursors.up.isDown) {
+      vy = -speed
+    } else if (this.cursors.down.isDown) {
+      vy = speed
     }
+
+    this.player.setVelocity(vx, vy)
+    this.posText.setText(`X: ${Math.floor(this.player.x)} Y: ${Math.floor(this.player.y)}`)
+
+    // Screen Transition Logic
+    const currentScreen = Math.floor(this.player.x / 800)
+    const targetScrollX = currentScreen * 800
+
+    if (this.cameras.main.scrollX !== targetScrollX) {
+      this.cameras.main.setScroll(targetScrollX, 0)
+    }
+
+    // Update Env Text based on screen
+    const envNames = ['Savannah', 'Swamp', 'Forest', 'Mountain']
+    this.envText.setText(`Env: ${envNames[currentScreen] || 'Unknown'}`)
 
     // Manual Restart
     if (Phaser.Input.Keyboard.JustDown(this.keyR)) {
@@ -143,80 +155,52 @@ export default class GameScene extends Phaser.Scene {
   }
 
   collectMask(player, mask) {
-    // Prevent multiple collections
     if (this.isCollecting) return
-    this.isCollecting = true
 
-    // Freeze player momentarily
-    player.setVelocity(0, 0)
-
-    // Particle burst effect
+    // Mask collection effect
     const emitter = this.maskParticles.createEmitter({
       x: mask.x,
       y: mask.y,
-      speed: { min: 100, max: 300 },
-      angle: { min: 0, max: 360 },
-      scale: { start: 0.3, end: 0 },
-      blendMode: 'ADD',
-      lifespan: 1000,
-      gravityY: 200,
-      quantity: 20
+      speed: { min: 50, max: 150 },
+      scale: { start: 0.2, end: 0 },
+      lifespan: 800,
+      quantity: 15
     })
-
     emitter.explode()
 
-    // Screen flash effect
-    const flash = this.add.rectangle(400, 225, 800, 450, 0xffffff, 0.5)
-    flash.setScrollFactor(0)
-    flash.setDepth(99)
-
-    this.tweens.add({
-      targets: flash,
-      alpha: 0,
-      duration: 500,
-      onComplete: () => flash.destroy()
-    })
-
-    // Celebration text
-    const collectText = this.add.text(mask.x, mask.y - 50, 'MASK PIECE FOUND!', {
-      fontSize: '24px',
-      color: '#d4af37',
-      stroke: '#000',
-      strokeThickness: 4,
-      fontStyle: 'bold'
-    }).setOrigin(0.5)
-
-    this.tweens.add({
-      targets: collectText,
-      y: mask.y - 100,
-      alpha: 0,
-      duration: 1500,
-      ease: 'Power2'
-    })
-
-    // Destroy mask with scale animation
-    this.tweens.add({
-      targets: mask,
-      scale: 0,
-      alpha: 0,
-      duration: 500,
-      onComplete: () => mask.destroy()
-    })
-
-    // Update game state
+    mask.destroy()
     gameState.maskPieces++
-    gameState.currentEnvIndex++
+    this.maskText.setText(`Masks: ${gameState.maskPieces}/${gameState.totalPieces}`)
 
-    // TODO: Play collection sound effect here
-    // this.sound.play('collectSound')
+    // Celebration flash
+    const flash = this.add.rectangle(400, 225, 800, 450, 0xffffff, 0.4).setScrollFactor(0).setDepth(99)
+    this.tweens.add({ targets: flash, alpha: 0, duration: 300, onComplete: () => flash.destroy() })
 
-    // Transition to next scene after delay
-    this.time.delayedCall(1500, () => {
-      if (gameState.maskPieces >= gameState.totalPieces) {
+    if (gameState.maskPieces >= gameState.totalPieces) {
+      this.isCollecting = true
+      this.time.delayedCall(1000, () => {
         this.scene.start('EndStory')
-      } else {
-        this.scene.restart()
-      }
+      })
+    }
+  }
+
+  hitEnemy(player, enemy) {
+    if (this.isHit) return
+    this.isHit = true
+
+    player.setTint(0xff0000)
+    this.cameras.main.shake(300, 0.02)
+
+    // Red flash
+    const flash = this.add.rectangle(400, 225, 800, 450, 0xff0000, 0.5).setScrollFactor(0).setDepth(99)
+    this.tweens.add({ targets: flash, alpha: 0, duration: 300, onComplete: () => flash.destroy() })
+
+    this.add.text(400, 225, 'HIT!', {
+      fontSize: '48px', color: '#ff0000', stroke: '#000', strokeThickness: 6, fontStyle: 'bold'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(100)
+
+    this.time.delayedCall(1000, () => {
+      this.scene.restart()
     })
   }
 }

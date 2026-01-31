@@ -49,11 +49,13 @@ export default class Preload extends Phaser.Scene {
     this.load.image('player', 'assets/player.png')
     this.load.image('ground', 'assets/ground.png')
     this.load.image('maskPiece', 'assets/maskPiece.png')
+    this.load.image('enemy', 'assets/ground.png') // Using ground as enemy placeholder
 
     // TODO: Add sound effects when ready
     // this.load.audio('collectSound', 'assets/sounds/collect.mp3')
     // this.load.audio('jumpSound', 'assets/sounds/jump.mp3')
     // this.load.audio('bgMusic', 'assets/sounds/music.mp3')
+    // this.load.audio('hitSound', 'assets/sounds/hit.mp3')
   }
 
   create() {

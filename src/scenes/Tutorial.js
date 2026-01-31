@@ -1,3 +1,4 @@
+// src/scenes/Tutorial.js
 export default class Tutorial extends Phaser.Scene {
     constructor() {
         super('Tutorial')
@@ -17,14 +18,16 @@ export default class Tutorial extends Phaser.Scene {
         // Instructions
         const instructions = `⬅️ LEFT ARROW - Move Left
 ➡️ RIGHT ARROW - Move Right
-⬆️ UP ARROW - Jump
+⬆️ UP ARROW - Move Up
+⬇️ DOWN ARROW - Move Down
 
 🎯 OBJECTIVE:
-Collect all 4 mask pieces from different environments
+Collect all 4 mask pieces scattered across the lands
 
 💡 TIP:
-Use platforms to reach higher areas
-Press R to restart if you get stuck
+Avoid the red enemies!
+The world has 4 different environments
+Explore by moving left and right
 
 Try moving around below!`
 
@@ -35,18 +38,11 @@ Try moving around below!`
             lineSpacing: 8
         }).setOrigin(0.5)
 
-        // Add static ground for tutorial
-        this.platforms = this.physics.add.staticGroup()
-        this.platforms.create(400, 400, 'ground').setScale(2, 1).refreshBody()
-        this.platforms.create(600, 250, 'ground').setScale(0.5, 1).refreshBody()
-
         // Add Player for practice - SMALLER SIZE
-        this.player = this.physics.add.sprite(100, 300, 'player')
-        this.player.setScale(0.3) // Match game scene size
+        this.player = this.physics.add.sprite(400, 350, 'player')
+        this.player.setScale(0.3)
         this.player.setCollideWorldBounds(true)
-        this.player.setBounce(0.1)
-
-        this.physics.add.collider(this.player, this.platforms)
+        this.player.body.setAllowGravity(false)
 
         // Controls
         this.cursors = this.input.keyboard.createCursorKeys()
@@ -72,19 +68,21 @@ Try moving around below!`
     }
 
     update() {
-        // Movement Logic
+        const speed = 200
+        this.player.setVelocity(0)
+
         if (this.cursors.left.isDown) {
-            this.player.setVelocityX(-200)
+            this.player.setVelocityX(-speed)
             this.player.setFlipX(true)
         } else if (this.cursors.right.isDown) {
-            this.player.setVelocityX(200)
+            this.player.setVelocityX(speed)
             this.player.setFlipX(false)
-        } else {
-            this.player.setVelocityX(0)
         }
 
-        if (this.cursors.up.isDown && this.player.body.touching.down) {
-            this.player.setVelocityY(-500)
+        if (this.cursors.up.isDown) {
+            this.player.setVelocityY(-speed)
+        } else if (this.cursors.down.isDown) {
+            this.player.setVelocityY(speed)
         }
     }
 }
