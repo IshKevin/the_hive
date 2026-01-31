@@ -24,14 +24,14 @@ export default class Tutorial extends Phaser.Scene {
         // Title with glow effect
         const titleShadow = this.add.text(width / 2, 42, 'TUTORIAL', {
             fontSize: '42px',
-            fontFamily: 'Georgia, serif',
+            fontFamily: '"Sankofa Display", sans-serif',
             color: '#000000',
             fontStyle: 'bold'
         }).setOrigin(0.5).setAlpha(0.5)
         
         const title = this.add.text(width / 2, 40, 'TUTORIAL', {
             fontSize: '42px',
-            fontFamily: 'Georgia, serif',
+            fontFamily: '"Sankofa Display", sans-serif',
             color: '#d4af37',
             fontStyle: 'bold',
             stroke: '#000000',
@@ -70,14 +70,14 @@ export default class Tutorial extends Phaser.Scene {
         // Instruction text
         this.instructionTitle = this.add.text(width / 2, 115, '', {
             fontSize: '22px',
-            fontFamily: 'Georgia, serif',
+            fontFamily: '"Sankofa Display", sans-serif',
             color: '#d4af37',
             fontStyle: 'bold'
         }).setOrigin(0.5)
         
         this.instructionText = this.add.text(width / 2, 155, '', {
             fontSize: '16px',
-            fontFamily: 'Georgia, serif',
+            fontFamily: '"Agbalumo", cursive',
             color: '#ffffff',
             align: 'center',
             lineSpacing: 5
@@ -182,7 +182,7 @@ export default class Tutorial extends Phaser.Scene {
         // Zone label
         this.add.text(400, 225, '🎮 Practice Zone', {
             fontSize: '14px',
-            fontFamily: 'Georgia, serif',
+            fontFamily: '"Agbalumo", cursive',
             color: '#c9a961',
             fontStyle: 'italic'
         }).setOrigin(0.5)
@@ -335,7 +335,7 @@ export default class Tutorial extends Phaser.Scene {
     showSuccessMessage(message) {
         const successText = this.add.text(400, 280, message, {
             fontSize: '24px',
-            fontFamily: 'Georgia, serif',
+            fontFamily: '"Sankofa Display", sans-serif',
             color: '#4ade80',
             fontStyle: 'bold',
             stroke: '#000000',
@@ -357,7 +357,7 @@ export default class Tutorial extends Phaser.Scene {
         // Previous button
         this.prevBtn = this.add.text(150, 470, '◄ PREVIOUS', {
             fontSize: '16px',
-            fontFamily: 'Georgia, serif',
+            fontFamily: '"Agbalumo", cursive',
             color: '#888888',
             backgroundColor: 'rgba(0,0,0,0.5)',
             padding: { x: 15, y: 8 }
@@ -378,7 +378,7 @@ export default class Tutorial extends Phaser.Scene {
         // Next button
         this.nextBtn = this.add.text(500, 470, 'NEXT ►', {
             fontSize: '16px',
-            fontFamily: 'Georgia, serif',
+            fontFamily: '"Agbalumo", cursive',
             color: '#d4af37',
             backgroundColor: 'rgba(0,0,0,0.5)',
             padding: { x: 15, y: 8 }
@@ -397,7 +397,7 @@ export default class Tutorial extends Phaser.Scene {
         // Back to menu button
         this.backBtn = this.add.text(650, 470, 'MENU', {
             fontSize: '16px',
-            fontFamily: 'Georgia, serif',
+            fontFamily: '"Agbalumo", cursive',
             color: '#c9a961',
             backgroundColor: 'rgba(0,0,0,0.7)',
             padding: { x: 20, y: 8 },
@@ -428,7 +428,7 @@ export default class Tutorial extends Phaser.Scene {
         
         this.tipText = this.add.text(650, 432, '💡 Try it now!', {
             fontSize: '14px',
-            fontFamily: 'Georgia, serif',
+            fontFamily: '"Agbalumo", cursive',
             color: '#4ade80',
             align: 'center'
         }).setOrigin(0.5)
