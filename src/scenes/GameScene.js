@@ -16,10 +16,26 @@ export default class GameScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, worldWidth, worldHeight)
     this.cameras.main.setSize(screenWidth, worldHeight)
 
-    // Background Colors for each segment
-    const colors = [0xe6ccb2, 0x2d6a4f, 0x52b788, 0xa8dadc] // Savannah, Swamp, Forest, Mountain
-    colors.forEach((color, i) => {
-      this.add.rectangle(i * screenWidth, 0, screenWidth, worldHeight, color).setOrigin(0)
+    // Background Images for each environment segment
+    const backgrounds = [
+      { key: 'savannaBackground', fallbackColor: 0xe6ccb2 },   // Savannah
+      { key: 'swampBackground', fallbackColor: 0x2d6a4f },     // Swamp
+      { key: 'forestBackground', fallbackColor: 0x52b788 },    // Forest
+      { key: 'mountainBackground', fallbackColor: 0xa8dadc }   // Mountain
+    ]
+    
+    backgrounds.forEach((bg, i) => {
+      const xPos = i * screenWidth
+      
+      if (this.textures.exists(bg.key)) {
+        // Use background image
+        const bgImage = this.add.image(xPos, 0, bg.key).setOrigin(0)
+        // Scale to fit the screen segment
+        bgImage.setDisplaySize(screenWidth, worldHeight)
+      } else {
+        // Fallback to colored rectangle
+        this.add.rectangle(xPos, 0, screenWidth, worldHeight, bg.fallbackColor).setOrigin(0)
+      }
     })
 
     // UI Text (Fixed on screen)
@@ -150,8 +166,14 @@ export default class GameScene extends Phaser.Scene {
 
     this.physics.add.overlap(this.player, this.enemies, this.hitEnemy, null, this)
 
-    // Mask Particles
-    this.maskParticles = this.add.particles('maskPiece')
+    // Mask Particles - Phaser 3.60+ syntax
+    this.maskParticles = this.add.particles(0, 0, 'maskPiece', {
+      speed: { min: 50, max: 150 },
+      scale: { start: 0.3, end: 0 },
+      lifespan: 600,
+      gravityY: 200,
+      emitting: false  // Don't emit automatically
+    })
 
     // Initial state - Reset collected masks
     gameState.resetMasks()
@@ -247,13 +269,10 @@ export default class GameScene extends Phaser.Scene {
     const my = mask.y
 
     try {
-      // Simple particle burst compatible with all Phaser 3 versions
+      // Particle burst - Phaser 3.60+ syntax
       if (this.maskParticles) {
-        if (this.maskParticles.emitParticleAt) {
-          this.maskParticles.emitParticleAt(mx, my, 15) // Phaser 3.60+
-        } else if (this.maskParticles.explode) {
-          this.maskParticles.explode(15, mx, my) // Phaser < 3.60
-        }
+        this.maskParticles.setPosition(mx, my)
+        this.maskParticles.explode(15)
       }
     } catch (e) {
       console.warn("Particle effect failed:", e)

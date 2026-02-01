@@ -57,6 +57,13 @@ export default class Preload extends Phaser.Scene {
     this.load.image('mask2', 'assets/mask2.png')  // Swamp
     this.load.image('mask3', 'assets/mask3.png')  // Forest
     this.load.image('mask4', 'assets/mask4.png')  // Mountain
+    this.load.image('finalMask', 'assets/finalyMask.png')  // Complete mask for victory
+
+    // Environment backgrounds
+    this.load.image('savannaBackground', 'assets/savanna.png')
+    this.load.image('swampBackground', 'assets/swamp.png')
+    this.load.image('forestBackground', 'assets/forest.png')
+    this.load.image('mountainBackground', 'assets/mountain.png')
 
     // Audio assets
     this.load.audio('bgMusic', 'assets/music/backgroundMusic.mp3')
