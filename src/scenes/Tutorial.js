@@ -3,7 +3,7 @@ export default class Tutorial extends Phaser.Scene {
     constructor() {
         super('Tutorial')
         this.currentStep = 0
-        this.totalSteps = 5
+        this.totalSteps = 6
         this.stepCompleted = false
     }
 
@@ -310,6 +310,52 @@ export default class Tutorial extends Phaser.Scene {
         
         // Collision overlap
         this.physics.add.overlap(this.player, this.demoMask, this.collectDemoMask, null, this)
+        
+        // Keyboard shortcut display (initially hidden)
+        this.keysDisplay = this.add.container(400, 320).setVisible(false)
+        
+        // Background for keys display
+        const keysBg = this.add.graphics()
+        keysBg.fillStyle(0x000000, 0.7)
+        keysBg.fillRoundedRect(-180, -60, 360, 120, 10)
+        keysBg.lineStyle(2, 0xd4af37, 0.5)
+        keysBg.strokeRoundedRect(-180, -60, 360, 120, 10)
+        this.keysDisplay.add(keysBg)
+        
+        // Key boxes
+        const keyData = [
+            { key: 'P', label: 'Pause', x: -120, color: 0x4ade80 },
+            { key: 'ESC', label: 'Pause', x: -40, color: 0x4ade80 },
+            { key: 'Q', label: 'Quit', x: 40, color: 0xff6b6b },
+            { key: 'M', label: 'Sound', x: 120, color: 0xd4af37 }
+        ]
+        
+        keyData.forEach(data => {
+            // Key box
+            const keyBox = this.add.graphics()
+            keyBox.fillStyle(data.color, 1)
+            keyBox.fillRoundedRect(data.x - 30, -45, 60, 50, 8)
+            keyBox.lineStyle(2, 0xffffff, 0.3)
+            keyBox.strokeRoundedRect(data.x - 30, -45, 60, 50, 8)
+            this.keysDisplay.add(keyBox)
+            
+            // Key text
+            const keyText = this.add.text(data.x, -25, data.key, {
+                fontSize: '20px',
+                fontFamily: '"Sankofa Display", sans-serif',
+                color: '#1a0f0a',
+                fontStyle: 'bold'
+            }).setOrigin(0.5)
+            this.keysDisplay.add(keyText)
+            
+            // Label under key
+            const labelText = this.add.text(data.x, 25, data.label, {
+                fontSize: '12px',
+                fontFamily: '"Agbalumo", cursive',
+                color: '#ffffff'
+            }).setOrigin(0.5)
+            this.keysDisplay.add(labelText)
+        })
     }
     
     collectDemoMask(player, mask) {
@@ -354,6 +400,28 @@ export default class Tutorial extends Phaser.Scene {
     }
     
     createNavigationButtons() {
+        // Skip button (top right corner)
+        this.skipBtn = this.add.text(750, 25, 'SKIP ⏭', {
+            fontSize: '14px',
+            fontFamily: '"Agbalumo", cursive',
+            color: '#888888',
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            padding: { x: 12, y: 6 }
+        }).setOrigin(1, 0).setInteractive({ useHandCursor: true })
+        
+        this.skipBtn.on('pointerover', () => {
+            this.skipBtn.setColor('#ff6b6b')
+            this.tweens.add({ targets: this.skipBtn, scale: 1.05, duration: 100 })
+        })
+        this.skipBtn.on('pointerout', () => {
+            this.skipBtn.setColor('#888888')
+            this.tweens.add({ targets: this.skipBtn, scale: 1, duration: 100 })
+        })
+        this.skipBtn.on('pointerdown', () => {
+            this.cameras.main.fadeOut(500, 0, 0, 0)
+            this.time.delayedCall(500, () => this.scene.start('StoryScene'))
+        })
+        
         // Previous button
         this.prevBtn = this.add.text(150, 470, '◄ PREVIOUS', {
             fontSize: '16px',
@@ -417,6 +485,131 @@ export default class Tutorial extends Phaser.Scene {
             this.cameras.main.fadeOut(500, 0, 0, 0)
             this.time.delayedCall(500, () => this.scene.start('MainMenu'))
         })
+        
+        // End screen buttons (hidden initially)
+        this.createEndButtons()
+    }
+    
+    createEndButtons() {
+        const { width, height } = this.cameras.main
+        
+        // Container for end buttons (hidden initially)
+        this.endButtonsContainer = this.add.container(width / 2, height / 2 + 50).setAlpha(0).setVisible(false)
+        
+        // Semi-transparent background
+        const endBg = this.add.graphics()
+        endBg.fillStyle(0x000000, 0.85)
+        endBg.fillRoundedRect(-200, -80, 400, 160, 15)
+        endBg.lineStyle(3, 0xd4af37, 1)
+        endBg.strokeRoundedRect(-200, -80, 400, 160, 15)
+        this.endButtonsContainer.add(endBg)
+        
+        // Congratulations text
+        const congratsText = this.add.text(0, -55, '🎉 Tutorial Complete! 🎉', {
+            fontSize: '22px',
+            fontFamily: '"Sankofa Display", sans-serif',
+            color: '#d4af37',
+            fontStyle: 'bold'
+        }).setOrigin(0.5)
+        this.endButtonsContainer.add(congratsText)
+        
+        // Start Game button
+        const startBtnBg = this.add.graphics()
+        startBtnBg.fillStyle(0x4ade80, 1)
+        startBtnBg.fillRoundedRect(-170, -15, 160, 45, 10)
+        this.endButtonsContainer.add(startBtnBg)
+        
+        const startBtnText = this.add.text(-90, 7, '▶ START GAME', {
+            fontSize: '16px',
+            fontFamily: '"Sankofa Display", sans-serif',
+            color: '#1a0f0a',
+            fontStyle: 'bold'
+        }).setOrigin(0.5)
+        this.endButtonsContainer.add(startBtnText)
+        
+        // Start button hitbox
+        const startBtnHitbox = this.add.rectangle(-90, 7, 160, 45, 0x000000, 0)
+            .setInteractive({ useHandCursor: true })
+        this.endButtonsContainer.add(startBtnHitbox)
+        
+        startBtnHitbox.on('pointerover', () => {
+            startBtnBg.clear()
+            startBtnBg.fillStyle(0x6ee7a0, 1)
+            startBtnBg.fillRoundedRect(-170, -15, 160, 45, 10)
+        })
+        startBtnHitbox.on('pointerout', () => {
+            startBtnBg.clear()
+            startBtnBg.fillStyle(0x4ade80, 1)
+            startBtnBg.fillRoundedRect(-170, -15, 160, 45, 10)
+        })
+        startBtnHitbox.on('pointerdown', () => {
+            this.cameras.main.fadeOut(500, 0, 0, 0)
+            this.time.delayedCall(500, () => this.scene.start('StoryScene'))
+        })
+        
+        // Main Menu button
+        const menuBtnBg = this.add.graphics()
+        menuBtnBg.fillStyle(0xd4af37, 1)
+        menuBtnBg.fillRoundedRect(10, -15, 160, 45, 10)
+        this.endButtonsContainer.add(menuBtnBg)
+        
+        const menuBtnText = this.add.text(90, 7, '🏠 MAIN MENU', {
+            fontSize: '16px',
+            fontFamily: '"Sankofa Display", sans-serif',
+            color: '#1a0f0a',
+            fontStyle: 'bold'
+        }).setOrigin(0.5)
+        this.endButtonsContainer.add(menuBtnText)
+        
+        // Menu button hitbox
+        const menuBtnHitbox = this.add.rectangle(90, 7, 160, 45, 0x000000, 0)
+            .setInteractive({ useHandCursor: true })
+        this.endButtonsContainer.add(menuBtnHitbox)
+        
+        menuBtnHitbox.on('pointerover', () => {
+            menuBtnBg.clear()
+            menuBtnBg.fillStyle(0xf4cf67, 1)
+            menuBtnBg.fillRoundedRect(10, -15, 160, 45, 10)
+        })
+        menuBtnHitbox.on('pointerout', () => {
+            menuBtnBg.clear()
+            menuBtnBg.fillStyle(0xd4af37, 1)
+            menuBtnBg.fillRoundedRect(10, -15, 160, 45, 10)
+        })
+        menuBtnHitbox.on('pointerdown', () => {
+            this.cameras.main.fadeOut(500, 0, 0, 0)
+            this.time.delayedCall(500, () => this.scene.start('MainMenu'))
+        })
+        
+        // Tip at bottom
+        const tipText = this.add.text(0, 55, 'Press any button to continue', {
+            fontSize: '12px',
+            fontFamily: '"Agbalumo", cursive',
+            color: '#888888'
+        }).setOrigin(0.5)
+        this.endButtonsContainer.add(tipText)
+    }
+    
+    showEndScreen() {
+        // Hide regular navigation buttons
+        this.prevBtn.setVisible(false)
+        this.nextBtn.setVisible(false)
+        this.backBtn.setVisible(false)
+        this.skipBtn.setVisible(false)
+        this.tipBg.setVisible(false)
+        this.tipText.setVisible(false)
+        
+        // Show and animate end buttons
+        this.endButtonsContainer.setVisible(true)
+        this.endButtonsContainer.setDepth(100)
+        
+        this.tweens.add({
+            targets: this.endButtonsContainer,
+            alpha: 1,
+            scale: { from: 0.8, to: 1 },
+            duration: 400,
+            ease: 'Back.easeOut'
+        })
     }
     
     createTipBox() {
@@ -467,6 +660,7 @@ export default class Tutorial extends Phaser.Scene {
         this.demoMaskGlow.setVisible(false)
         this.demoEnemy.setVisible(false)
         this.enemyWarning.setVisible(false)
+        this.keysDisplay.setVisible(false)
         this.enemyTween.pause()
         
         // Reset player position with animation
@@ -502,7 +696,13 @@ export default class Tutorial extends Phaser.Scene {
                 showMask: true
             },
             {
-                title: '🌍 Step 5: Explore the World',
+                title: '⌨️ Step 5: Keyboard Shortcuts',
+                text: '[P] or [ESC] = Pause/Resume game\n[Q] = Quit to menu (when paused)  •  [M] = Toggle sound',
+                tip: '💡 Try pressing P!',
+                showKeys: true
+            },
+            {
+                title: '🌍 Step 6: Explore the World',
                 text: 'The kingdom has 4 environments: Savannah, Swamp, Forest, Mountain.\nFind all 4 mask pieces scattered across the lands!',
                 tip: '🎮 Ready to play!'
             }
@@ -538,6 +738,28 @@ export default class Tutorial extends Phaser.Scene {
             this.demoMask.setPosition(550, 300)
             this.demoMaskGlow.setVisible(true)
             this.demoMaskGlow.setPosition(550, 300)
+        }
+        
+        if (step.showKeys) {
+            this.keysDisplay.setVisible(true)
+            // Animate the keys appearing
+            this.keysDisplay.setAlpha(0)
+            this.keysDisplay.setScale(0.8)
+            this.tweens.add({
+                targets: this.keysDisplay,
+                alpha: 1,
+                scale: 1,
+                duration: 400,
+                ease: 'Back.easeOut'
+            })
+            
+            // Auto-complete this step after viewing
+            this.time.delayedCall(2000, () => {
+                if (this.currentStep === 4 && !this.stepCompleted) {
+                    this.showSuccessMessage('✓ Shortcuts Learned!')
+                    this.completeStep()
+                }
+            })
         }
     }
     
@@ -611,9 +833,8 @@ export default class Tutorial extends Phaser.Scene {
         if (this.currentStep < this.totalSteps - 1) {
             this.showStep(this.currentStep + 1)
         } else {
-            // Start the game
-            this.cameras.main.fadeOut(500, 0, 0, 0)
-            this.time.delayedCall(500, () => this.scene.start('StoryScene'))
+            // Show end screen with options
+            this.showEndScreen()
         }
     }
     

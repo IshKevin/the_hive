@@ -16,10 +16,26 @@ export default class GameScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, worldWidth, worldHeight)
     this.cameras.main.setSize(screenWidth, worldHeight)
 
-    // Background Colors for each segment
-    const colors = [0xe6ccb2, 0x2d6a4f, 0x52b788, 0xa8dadc] // Savannah, Swamp, Forest, Mountain
-    colors.forEach((color, i) => {
-      this.add.rectangle(i * screenWidth, 0, screenWidth, worldHeight, color).setOrigin(0)
+    // Background Images for each environment segment
+    const backgrounds = [
+      { key: 'savannaBackground', fallbackColor: 0xe6ccb2 },   // Savannah
+      { key: 'swampBackground', fallbackColor: 0x2d6a4f },     // Swamp
+      { key: 'forestBackground', fallbackColor: 0x52b788 },    // Forest
+      { key: 'mountainBackground', fallbackColor: 0xa8dadc }   // Mountain
+    ]
+    
+    backgrounds.forEach((bg, i) => {
+      const xPos = i * screenWidth
+      
+      if (this.textures.exists(bg.key)) {
+        // Use background image
+        const bgImage = this.add.image(xPos, 0, bg.key).setOrigin(0)
+        // Scale to fit the screen segment
+        bgImage.setDisplaySize(screenWidth, worldHeight)
+      } else {
+        // Fallback to colored rectangle
+        this.add.rectangle(xPos, 0, screenWidth, worldHeight, bg.fallbackColor).setOrigin(0)
+      }
     })
 
     // UI Text (Fixed on screen)
@@ -56,8 +72,8 @@ export default class GameScene extends Phaser.Scene {
       this.uiContainer.add(icon)
     }
 
-    const infoText = this.add.text(width / 2, height - 30, 'Arrow Keys to Move | Avoid Red Enemies!', {
-      fontSize: '18px',
+    const infoText = this.add.text(width / 2, height - 30, 'Arrow Keys: Move  |  P: Pause  |  M: Sound', {
+      fontSize: '16px',
       fontFamily: '"Agbalumo", cursive',
       fill: '#fff',
       stroke: '#000',
@@ -150,8 +166,14 @@ export default class GameScene extends Phaser.Scene {
 
     this.physics.add.overlap(this.player, this.enemies, this.hitEnemy, null, this)
 
-    // Mask Particles
-    this.maskParticles = this.add.particles('maskPiece')
+    // Mask Particles - Phaser 3.60+ syntax
+    this.maskParticles = this.add.particles(0, 0, 'maskPiece', {
+      speed: { min: 50, max: 150 },
+      scale: { start: 0.3, end: 0 },
+      lifespan: 600,
+      gravityY: 200,
+      emitting: false  // Don't emit automatically
+    })
 
     // Initial state - Reset collected masks
     gameState.resetMasks()
@@ -180,10 +202,217 @@ export default class GameScene extends Phaser.Scene {
       up: false,
       down: false
     }
+    
+    // Pause state
+    this.isPaused = false
+    
+    // Create pause button and menu
+    this.createPauseButton()
+    this.createPauseMenu()
+    
+    // Keyboard shortcuts
+    this.keyESC = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC)
+    this.keyP = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.P)
+    this.keyQ = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q)
+    this.keyM = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M)
+  }
+  
+  createPauseButton() {
+    // Pause button (top right)
+    this.pauseBtn = this.add.text(760, 10, '⏸', {
+      fontSize: '28px',
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      padding: { x: 10, y: 5 }
+    }).setScrollFactor(0).setDepth(100).setInteractive({ useHandCursor: true })
+    
+    this.pauseBtn.on('pointerover', () => {
+      this.pauseBtn.setScale(1.1)
+    })
+    this.pauseBtn.on('pointerout', () => {
+      this.pauseBtn.setScale(1)
+    })
+    this.pauseBtn.on('pointerdown', () => {
+      this.togglePause()
+    })
+  }
+  
+  createPauseMenu() {
+    const { width, height } = this.scale
+    
+    // Pause menu container (hidden initially)
+    this.pauseMenu = this.add.container(width / 2, height / 2).setScrollFactor(0).setDepth(200).setVisible(false)
+    
+    // Dark overlay behind menu
+    this.pauseOverlay = this.add.rectangle(0, 0, width * 2, height * 2, 0x000000, 0.7)
+    this.pauseMenu.add(this.pauseOverlay)
+    
+    // Menu background
+    const menuBg = this.add.graphics()
+    menuBg.fillStyle(0x1a0f0a, 0.95)
+    menuBg.fillRoundedRect(-150, -120, 300, 240, 15)
+    menuBg.lineStyle(3, 0xd4af37, 1)
+    menuBg.strokeRoundedRect(-150, -120, 300, 240, 15)
+    this.pauseMenu.add(menuBg)
+    
+    // Pause title
+    const pauseTitle = this.add.text(0, -90, '⏸ PAUSED', {
+      fontSize: '32px',
+      fontFamily: '"Sankofa Display", sans-serif',
+      color: '#d4af37',
+      fontStyle: 'bold'
+    }).setOrigin(0.5)
+    this.pauseMenu.add(pauseTitle)
+    
+    // Decorative line
+    const line = this.add.graphics()
+    line.lineStyle(2, 0xd4af37, 0.5)
+    line.beginPath()
+    line.moveTo(-100, -55)
+    line.lineTo(100, -55)
+    line.strokePath()
+    this.pauseMenu.add(line)
+    
+    // Resume button
+    const resumeBtnBg = this.add.graphics()
+    resumeBtnBg.fillStyle(0x4ade80, 1)
+    resumeBtnBg.fillRoundedRect(-100, -40, 200, 50, 10)
+    this.pauseMenu.add(resumeBtnBg)
+    
+    const resumeText = this.add.text(0, -15, '▶ RESUME', {
+      fontSize: '20px',
+      fontFamily: '"Sankofa Display", sans-serif',
+      color: '#1a0f0a',
+      fontStyle: 'bold'
+    }).setOrigin(0.5)
+    this.pauseMenu.add(resumeText)
+    
+    const resumeHitbox = this.add.rectangle(0, -15, 200, 50, 0x000000, 0)
+      .setInteractive({ useHandCursor: true })
+    this.pauseMenu.add(resumeHitbox)
+    
+    resumeHitbox.on('pointerover', () => {
+      resumeBtnBg.clear()
+      resumeBtnBg.fillStyle(0x6ee7a0, 1)
+      resumeBtnBg.fillRoundedRect(-100, -40, 200, 50, 10)
+    })
+    resumeHitbox.on('pointerout', () => {
+      resumeBtnBg.clear()
+      resumeBtnBg.fillStyle(0x4ade80, 1)
+      resumeBtnBg.fillRoundedRect(-100, -40, 200, 50, 10)
+    })
+    resumeHitbox.on('pointerdown', () => {
+      this.togglePause()
+    })
+    
+    // Quit button
+    const quitBtnBg = this.add.graphics()
+    quitBtnBg.fillStyle(0xff6b6b, 1)
+    quitBtnBg.fillRoundedRect(-100, 25, 200, 50, 10)
+    this.pauseMenu.add(quitBtnBg)
+    
+    const quitText = this.add.text(0, 50, '🏠 QUIT TO MENU', {
+      fontSize: '18px',
+      fontFamily: '"Sankofa Display", sans-serif',
+      color: '#ffffff',
+      fontStyle: 'bold'
+    }).setOrigin(0.5)
+    this.pauseMenu.add(quitText)
+    
+    const quitHitbox = this.add.rectangle(0, 50, 200, 50, 0x000000, 0)
+      .setInteractive({ useHandCursor: true })
+    this.pauseMenu.add(quitHitbox)
+    
+    quitHitbox.on('pointerover', () => {
+      quitBtnBg.clear()
+      quitBtnBg.fillStyle(0xff8a8a, 1)
+      quitBtnBg.fillRoundedRect(-100, 25, 200, 50, 10)
+    })
+    quitHitbox.on('pointerout', () => {
+      quitBtnBg.clear()
+      quitBtnBg.fillStyle(0xff6b6b, 1)
+      quitBtnBg.fillRoundedRect(-100, 25, 200, 50, 10)
+    })
+    quitHitbox.on('pointerdown', () => {
+      this.quitGame()
+    })
+    
+    // Tip text with shortcuts
+    const tipText = this.add.text(0, 100, '[ESC/P] Resume  •  [Q] Quit  •  [M] Sound', {
+      fontSize: '11px',
+      fontFamily: '"Agbalumo", cursive',
+      color: '#888888'
+    }).setOrigin(0.5)
+    this.pauseMenu.add(tipText)
+  }
+  
+  togglePause() {
+    this.isPaused = !this.isPaused
+    
+    if (this.isPaused) {
+      // Pause the game
+      this.physics.pause()
+      this.tweens.pauseAll()
+      this.pauseMenu.setVisible(true)
+      this.pauseBtn.setText('▶')
+      
+      // Pause background music
+      const bgMusic = this.sound.get('bgMusic')
+      if (bgMusic && bgMusic.isPlaying) {
+        bgMusic.pause()
+      }
+    } else {
+      // Resume the game
+      this.physics.resume()
+      this.tweens.resumeAll()
+      this.pauseMenu.setVisible(false)
+      this.pauseBtn.setText('⏸')
+      
+      // Resume background music
+      const bgMusic = this.sound.get('bgMusic')
+      if (bgMusic && gameState.soundEnabled) {
+        bgMusic.resume()
+      }
+    }
+  }
+  
+  quitGame() {
+    // Stop all sounds
+    this.sound.stopAll()
+    
+    // Reset game state
+    gameState.resetMasks()
+    
+    // Fade out and go to main menu
+    this.cameras.main.fadeOut(500, 0, 0, 0)
+    this.time.delayedCall(500, () => {
+      this.scene.start('MainMenu')
+    })
   }
 
   update() {
-    if (this.isHit) return
+    // Check for keyboard shortcuts
+    if (Phaser.Input.Keyboard.JustDown(this.keyESC) || Phaser.Input.Keyboard.JustDown(this.keyP)) {
+      this.togglePause()
+    }
+    
+    // Q to quit (only when paused for safety)
+    if (Phaser.Input.Keyboard.JustDown(this.keyQ) && this.isPaused) {
+      this.quitGame()
+    }
+    
+    // M to toggle music/sound
+    if (Phaser.Input.Keyboard.JustDown(this.keyM)) {
+      gameState.toggleSound()
+      const bgMusic = this.sound.get('bgMusic')
+      if (gameState.soundEnabled) {
+        if (bgMusic && !this.isPaused) bgMusic.resume()
+      } else {
+        if (bgMusic) bgMusic.pause()
+      }
+    }
+    
+    // Don't process game logic if paused or hit
+    if (this.isPaused || this.isHit) return
 
     // Play button click sound on key press (JustDown) if sound enabled
     if (Phaser.Input.Keyboard.JustDown(this.cursors.left) ||
@@ -247,13 +476,10 @@ export default class GameScene extends Phaser.Scene {
     const my = mask.y
 
     try {
-      // Simple particle burst compatible with all Phaser 3 versions
+      // Particle burst - Phaser 3.60+ syntax
       if (this.maskParticles) {
-        if (this.maskParticles.emitParticleAt) {
-          this.maskParticles.emitParticleAt(mx, my, 15) // Phaser 3.60+
-        } else if (this.maskParticles.explode) {
-          this.maskParticles.explode(15, mx, my) // Phaser < 3.60
-        }
+        this.maskParticles.setPosition(mx, my)
+        this.maskParticles.explode(15)
       }
     } catch (e) {
       console.warn("Particle effect failed:", e)
